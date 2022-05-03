@@ -9,27 +9,28 @@ import UIKit
 
 class CurrenciesListViewController: UITableViewController {
 
-    private let linkAPI = "https://api.coinbase.com/v2/currencies"
+    private var currencies: [Currency] = []
     
-    private var currenciesInfo: Currencies?
+    private var activityIndicator = UIActivityIndicatorView()
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        fetchData(from: linkAPI)
+        showSpinner(in: view)
+        fetchCurrenciesData()
     }
     
     // MARK: - Table view data source
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        currenciesInfo?.data.count ?? 0
+        currencies.count
     }
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
         var content = cell.defaultContentConfiguration()
        
-        content.text = currenciesInfo?.data[indexPath.row].id
-        content.secondaryText = currenciesInfo?.data[indexPath.row].name
+        content.text = currencies[indexPath.row].id
+        content.secondaryText = currencies[indexPath.row].name
         
         cell.contentConfiguration = content
 
@@ -44,11 +45,32 @@ class CurrenciesListViewController: UITableViewController {
 
 extension CurrenciesListViewController {
     
-    private func fetchData(from url: String?) {
-        NetworkManager.shared.fetchData(from: url) { currenciesInfo in
-            self.currenciesInfo = currenciesInfo
-            self.tableView.reloadData()
+    private func fetchCurrenciesData() {
+       
+        let json = "https://api.coinbase.com/v2/currencies"
+       
+        NetworkManager.shared.fetchCurrenciesWithAlamofire(url: json) { result in
+            switch result {
+            case .success(let currencies):
+                self.currencies = currencies
+                self.activityIndicator.stopAnimating()
+                self.tableView.reloadData()
+            case .failure(let error):
+                print(error)
+            }
         }
+    }
+    
+    private func showSpinner(in view: UIView) -> UIActivityIndicatorView {
+        activityIndicator = UIActivityIndicatorView(style: .large)
+        activityIndicator.color = .gray
+        activityIndicator.startAnimating()
+        activityIndicator.center = view.center
+        activityIndicator.hidesWhenStopped = true
+        
+        view.addSubview(activityIndicator)
+        
+        return activityIndicator
     }
     
 }

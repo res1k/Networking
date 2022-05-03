@@ -6,35 +6,29 @@
 //
 
 import Foundation
+import Alamofire
 
 class NetworkManager {
     
     static let shared = NetworkManager()
     
     private init() {}
-    
-    func fetchData(from url: String?, with completion: @escaping(Currencies) -> Void) {
-        guard let urlAPI = url else { return }
-        guard let url = URL(string: urlAPI) else { return }
-        
-        URLSession.shared.dataTask(with: url) { data, _, error in
-            guard let data = data else {
-                print(error?.localizedDescription ?? "No error description")
-                return
-            }
-            
-            do {
-                let currenciesInfo = try JSONDecoder().decode(Currencies.self, from: data)
-                DispatchQueue.main.async {
-                    completion(currenciesInfo)
+
+    func fetchCurrenciesWithAlamofire(url: String, completion: @escaping(Result<[Currency], Error>) -> Void) {
+        AF.request(url)
+            .validate()
+            .responseJSON { dataResponse in
+                switch dataResponse.result {
+                case .success(let data):
+                    let currencies = Currencies.getCurrencies(data: data)
+                    DispatchQueue.main.async {
+                        completion(.success(currencies))
+                    }
+                case .failure(let error):
+                    completion(.failure(error))
                 }
-            } catch let error {
-                print(error)
             }
-            
-        }.resume()
     }
-    
 }
 
 
